@@ -67,6 +67,7 @@
     this.context = false;
     this.events = { route: [], match: [], done: [] }
     this.routes = [];
+    this.fails = [];
     this.usePopstate = this.constructor.usePopstate && this.constructor.supportsPopstate;
 
     this.routePopstate = function() {
@@ -111,7 +112,7 @@
       return this;
     },
 
-    when: function(expr) {
+    when: function(expr, callback) {
       var params = expr.match(/(:[^\/]*)|(\*[^\/]*)/g) || []
         , regex
         , route = new Slash.Route;
@@ -126,12 +127,18 @@
       });
 
       // Apply formatted parameters and regular expression to the route.
+      route.callback = callback;
       route.params = params;
       route.regex = new RegExp('^' + regex + '$');
 
       this.routes.push(route);
 
       return route;
+    },
+
+    fail: function(callback) {
+      this.fails.push(callback);
+      return this;
     },
 
     route: function(uri) {
@@ -153,7 +160,13 @@
 
       function doRoute(uri) {
         for (var a = 0; a < that.routes.length; a++) {
-          if (that.routes[a].exec(uri)) {
+          try {
+            var matched = that.routes[a].exec(uri);
+          } catch (e) {
+            doFail(e, uri, that.routes[a]);
+          }
+
+          if (matched) {
             if (fireMatch(that.routes[a]) === false) {
               return false;
             }
@@ -163,6 +176,16 @@
         }
 
         return false;
+      }
+
+      function doFail(e, uri, route) {
+        if (!that.fails.length) {
+          throw e;
+        }
+
+        for (var a = 0; a < that.fails.length; a++) {
+          that.fails[a](e, uri, route);
+        }
       }
 
       function fireDone() {
@@ -213,13 +236,10 @@
 
 
   Slash.Route = function(opts) {
-    this.regex = /^$/;
-    this.params = {};
-    this.matched = {};
-    this.executed = false;
-    this.err = false;
-    this.thens = [];
-    this.fails = [];
+    opts = opts || {};
+    this.callback = opts.callback || function(){};
+    this.regex = opts.regex || /^$/;
+    this.params = opts.params || {};
   };
 
   Slash.Route.prototype = {
@@ -229,56 +249,24 @@
       if (args) {
         args.shift();
 
+        var temp = {};
+
         for (var a = 0; a < this.params.length; a++) {
           var param = this.params[a];
 
           if (param) {
-            this.matched[param] = args[a];
+            temp[param] = args[a];
           } else {
-            this.matched[a] = args[a];
+            temp[a] = args[a];
           }
         }
 
-        for (var a = 0; a < this.thens.length; a++) {
-          var then = this.thens[a];
-          try {
-            then.call(then, this.matched);
-          } catch (e) {
-            for (var a = 0; a < this.fails.length; a++) {
-              var fail = this.fails[b];
-              fail.call(fail, this.matched);
-            }
-          }
-        }
+        this.callback(this.callback, temp);
 
         return true;
       }
 
       return false;
-    },
-
-    then: function(fn) {
-      if (this.executed) {
-        if (!this.err) {
-          fn(this.matched);
-        }
-      } else {
-        this.thens.push(fn);
-      }
-
-      return this;
-    },
-
-    fail: function(fn) {
-      if (this.executed) {
-        if (this.err) {
-          fn(this.err);
-        }
-      } else {
-        this.fails.push(fn);
-      }
-
-      return this;
     }
   };
 
