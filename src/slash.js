@@ -61,23 +61,27 @@
       return new Slash(def);
     }
 
+    var that = this;
+
     this.base = this.constructor.base;
     this.context = false;
     this.events = { route: [], match: [], done: [] }
     this.routes = [];
     this.usePopstate = this.constructor.usePopstate && this.constructor.supportsPopstate;
 
-    var hc = this.routeHashchange;
-    this.routeHashchange = function() {
-      hc();
-    };
-
-    var ps = this.routePopstate;
     this.routePopstate = function() {
-      ps();
+      if (that.usePopstate && that.constructor.supportsPopstate) {
+        that.route();
+      }
     };
 
-    if (typeof dev === 'function') {
+    this.routeHashchange = function() {
+      if (!that.usePopstate || !that.constructor.supportsPopstate) {
+        that.route();
+      }
+    };
+
+    if (typeof def === 'function') {
       def(this);
     }
   };
@@ -182,22 +186,6 @@
           }
         }
       }
-    },
-
-    routePopstate: function() {
-      if (this.usePopstate && this.constructor.supportsPopstate) {
-        this.route();
-      }
-
-      return this;
-    },
-
-    routeHashchange: function() {
-      if (!this.usePopstate || !this.constructor.supportsPopstate) {
-        this.route();
-      }
-
-      return this;
     },
 
     uri: function(uri) {
