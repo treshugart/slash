@@ -26,13 +26,6 @@
     el.removeEventListener(e, fn);
   }
 
-  function once(el, e, fn) {
-    bind(el, e, function(e) {
-      fn(e);
-      unbind(el, e, fn);
-    });
-  }
-
   function hashbang(uri) {
     var id = uri.replace(/^#/, '')
       , node = document.getElementById(id)
@@ -68,13 +61,21 @@
       return new Slash(def);
     }
 
+    var that = this;
+
     this.base = this.constructor.base;
     this.context = false;
     this.events = { route: [], match: [], done: [] }
     this.routes = [];
     this.usePopstate = this.constructor.usePopstate && this.constructor.supportsPopstate;
-    this.routeHashchange = this.routeHashchange.bind(this);
-    this.routePopstate = this.routePopstate.bind(this);
+
+    this.routeHashchange = function() {
+      that.routeHashchange();
+    };
+
+    this.routePopstate = function() {
+      that.routePopstate();
+    };
 
     if (typeof dev === 'function') {
       def(this);
