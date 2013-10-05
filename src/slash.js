@@ -235,7 +235,6 @@
 
   Slash.Route.prototype = {
     exec: function(uri) {
-      console.log(uri, this.regex, this.params);
       var args = uri.match(this.regex);
 
       if (args) {
