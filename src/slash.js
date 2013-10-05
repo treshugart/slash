@@ -61,20 +61,20 @@
       return new Slash(def);
     }
 
-    var that = this;
-
     this.base = this.constructor.base;
     this.context = false;
     this.events = { route: [], match: [], done: [] }
     this.routes = [];
     this.usePopstate = this.constructor.usePopstate && this.constructor.supportsPopstate;
 
+    var hc = this.routeHashchange;
     this.routeHashchange = function() {
-      that.routeHashchange();
+      hc();
     };
 
+    var ps = this.routePopstate;
     this.routePopstate = function() {
-      that.routePopstate();
+      ps();
     };
 
     if (typeof dev === 'function') {
