@@ -8,7 +8,7 @@ describe('Events', function() {
     });
 
     sl.when('*');
-    sl.route('test');
+    sl.dispatch('test');
   });
 
   it('Should trigger `match` events.', function(done) {
@@ -20,7 +20,7 @@ describe('Events', function() {
     });
 
     sl.when('*');
-    sl.route('test');
+    sl.dispatch('test');
   });
 
   it('Should trigger `done` events.', function(done) {
@@ -32,7 +32,7 @@ describe('Events', function() {
     });
 
     sl.when('*');
-    sl.route('test');
+    sl.dispatch('test');
   });
 });
 
@@ -45,7 +45,7 @@ describe('Routing', function() {
       done();
     });
 
-    sl.route('my/test/uri');
+    sl.dispatch('my/test/uri');
   });
 
   it('Should support parameters.', function(done) {
@@ -57,7 +57,7 @@ describe('Routing', function() {
       done();
     });
 
-    sl.route('my/test/uri');
+    sl.dispatch('my/test/uri');
   });
 
   it('Should support both splats and parameters.', function(done) {
@@ -69,7 +69,7 @@ describe('Routing', function() {
       done();
     });
 
-    sl.route('my/test1/test2/uri');
+    sl.dispatch('my/test1/test2/uri');
   });
 
   it('Should work with both `history.pushState` and URI fragments.', function() {
@@ -101,7 +101,7 @@ describe('Routing', function() {
     sl.on('match', fnMatch);
     sl.on('done', fnDone);
     sl.when('*');
-    sl.route();
+    sl.dispatch();
 
     resMatch.should.equal(true);
     resDone.should.equal(false);
@@ -120,6 +120,6 @@ describe('Routing', function() {
       done();
     });
 
-    sl.route();
+    sl.dispatch();
   });
 });

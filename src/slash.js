@@ -67,18 +67,18 @@
     this.context = false;
     this.events = { route: [], match: [], done: [] }
     this.routes = [];
-    this.fails = [];
+    this.errors = [];
     this.usePopstate = this.constructor.usePopstate && this.constructor.supportsPopstate;
 
     this.routePopstate = function() {
       if (that.usePopstate && that.constructor.supportsPopstate) {
-        that.route();
+        that.dispatch();
       }
     };
 
     this.routeHashchange = function() {
       if (!that.usePopstate || !that.constructor.supportsPopstate) {
-        that.route();
+        that.dispatch();
       }
     };
 
@@ -97,7 +97,7 @@
     listen: function() {
       bind(window, 'popstate', this.routePopstate);
       bind(window, 'hashchange', this.routeHashchange);
-      this.route();
+      this.dispatch();
       return this;
     },
 
@@ -112,44 +112,26 @@
       return this;
     },
 
-    when: function(expr, callback) {
-      var params = expr.match(/(:[^\/]*)|(\*[^\/]*)/g) || []
-        , regex
-        , route = new Slash.Route;
-
-      // Escape all special characters except "*".
-      regex = expr.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&');
-
-      // Format parameters and modify regex to match them.
-      params.forEach(function(param, index) {
-        regex = regex.replace(param, param.charAt(0) === ':' ? '([^/]*)' : '(.*?)');
-        params[index] = param.substring(1);
-      });
-
-      // Apply formatted parameters and regular expression to the route.
-      route.callback = callback;
-      route.params = params;
-      route.regex = new RegExp('^' + regex + '$');
-
+    when: function(expr) {
+      route = new Slash.Route(expr);
       this.routes.push(route);
-
       return route;
     },
 
-    fail: function(callback) {
-      this.fails.push(callback);
+    error: function(callback) {
+      this.errors.push(callback);
       return this;
     },
 
-    route: function(uri) {
-      var that = this
-        , uri = uri ? trim(uri, this.base) : this.uri();
+    dispatch: function(uri) {
+      var that = this;
+      var uri = uri ? trim(uri, this.base) : this.uri();
 
       if (fireRoute() === false) {
         return this;
       }
 
-      if (doRoute(uri) === false) {
+      if (doRoute() === false) {
         return this;
       }
 
@@ -158,45 +140,57 @@
       return this;
 
 
-      function doRoute(uri) {
+      function doRoute() {
         for (var a = 0; a < that.routes.length; a++) {
-          try {
-            var matched = that.routes[a].exec(uri);
-          } catch (e) {
-            doFail(e, uri, that.routes[a]);
+          var route = that.routes[a];
+          var params = route.match(uri);
+
+          if (fireMatch() === false) {
+            return false;
           }
 
-          if (matched) {
-            if (fireMatch(that.routes[a]) === false) {
-              return false;
+          try {
+            if (params === false) {
+              route.doOtherwise();
+              continue;
             }
 
+            if (that.route) {
+              that.route.doLeave(params);
+            }
+
+            route.doThen(params);
+
+            that.route = route;
+
             return;
+          } catch (e) {
+            doError(e);
           }
         }
 
         return false;
       }
 
-      function doFail(e, uri, route) {
-        if (!that.fails.length) {
+      function doError(e) {
+        if (!that.errors.length) {
           throw e;
         }
 
-        for (var a = 0; a < that.fails.length; a++) {
-          that.fails[a](e, uri, route);
+        for (var a = 0; a < that.errors.length; a++) {
+          that.errors[a].call(that.errors[a], e, that, uri);
         }
       }
 
       function fireDone() {
         for (var a = 0; a < that.events.done.length; a++) {
-          that.events.done[a](that, uri)
+          that.events.done[a].call(that.events.done[a], that, uri);
         }
       }
 
-      function fireMatch(route) {
+      function fireMatch() {
         for (var a = 0; a < that.events.match.length; a++) {
-          if (that.events.match[a](that, uri, route) === false) {
+          if (that.events.match[a].call(that.events.match[a], that, uri) === false) {
             return false;
           }
         }
@@ -204,7 +198,7 @@
 
       function fireRoute() {
         for (var a = 0; a < that.events.route.length; a++) {
-          if (that.events.route[a](that, uri) === false) {
+          if (that.events.route[a].call(that.events.route[a], that, uri) === false) {
             return false;
           }
         }
@@ -235,15 +229,56 @@
   };
 
 
-  Slash.Route = function(opts) {
-    opts = opts || {};
-    this.callback = opts.callback || function(){};
-    this.regex = opts.regex || /^$/;
-    this.params = opts.params || {};
+  Slash.Route = function(expr) {
+    this.thenCallbacks = [];
+    this.otherwiseCallbacks = [];
+    this.leaveCallbacks = [];
+    this.regex = /^$/;
+    this.params = {};
+    this.expr(expr);
   };
 
   Slash.Route.prototype = {
-    exec: function(uri) {
+    expr: function(expr) {
+      if (typeof expr === 'undefined') {
+        return this;
+      }
+
+      var params = expr.match(/(:[^\/]*)|(\*[^\/]*)/g) || [];
+      var regex;
+
+      // Escape all special characters except "*".
+      regex = expr.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&');
+
+      // Format parameters and modify regex to match them.
+      for (var a = 0; a < params.length; a++) {
+        var param = params[a];
+        regex = regex.replace(param, param.charAt(0) === ':' ? '([^/]*)' : '(.*?)');
+        params[a] = param.substring(1);
+      }
+
+      this.params = params;
+      this.regex = new RegExp('^' + regex + '$');
+
+      return this;
+    },
+
+    then: function(cb) {
+      this.thenCallbacks.push(cb);
+      return this;
+    },
+
+    otherwise: function(cb) {
+      this.otherwiseCallbacks.push(cb);
+      return this;
+    },
+
+    leave: function(cb) {
+      this.lastlyCallbacks.push(cb);
+      return this;
+    },
+
+    match: function(uri) {
       var args = uri.match(this.regex);
 
       if (args) {
@@ -261,12 +296,31 @@
           }
         }
 
-        this.callback(this.callback, temp);
-
-        return true;
+        return temp;
       }
 
       return false;
+    },
+
+    doThen: function(params) {
+      this.thenCallbacks.forEach(function(cb) {
+        cb(params);
+      });
+      return this;
+    },
+
+    doOtherwise: function(params) {
+      this.otherwiseCallbacks.forEach(function(cb) {
+        cb(params);
+      });
+      return this;
+    },
+
+    doLeave: function(params) {
+      this.leaveCallbacks.forEach(function(cb) {
+        cb(params);
+      });
+      return this;
     }
   };
 
