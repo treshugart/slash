@@ -14,7 +14,7 @@ describe('Events', function() {
   it('Should trigger `match` events.', function(done) {
     var sl = new Slash;
 
-    sl.on('match', function(route, uri) {
+    sl.on('match', function(router, uri) {
       uri.should.equal('test');
       done();
     });
@@ -26,13 +26,52 @@ describe('Events', function() {
   it('Should trigger `done` events.', function(done) {
     var sl = new Slash;
 
-    sl.on('done', function(route, uri) {
+    sl.on('done', function(router, uri) {
       uri.should.equal('test');
       done();
     });
 
     sl.when('*');
     sl.dispatch('test');
+  });
+});
+
+describe('Properties', function() {
+  it('Should provide the current match and route.', function(done) {
+    var sl = new Slash;
+    var test1 = sl.when('test1');
+    var test2 = sl.when('test2');
+
+    sl.on('route', function(router, uri) {
+      switch (uri) {
+        case 'test1':
+          router.match.should.equal(false);
+          router.route.should.equal(false);
+          break;
+        case 'test2':
+          console.log(uri);
+          router.match.should.equal('test1');
+          router.route.should.equal(test1);
+          break;
+      }
+    });
+
+    sl.on('done', function(router, uri) {
+      switch (uri) {
+        case 'test1':
+          router.match.should.equal('test1');
+          router.route.should.equal(test1);
+          break;
+        case 'test2':
+          router.match.should.equal('test2');
+          router.route.should.equal(test2);
+          done();
+          break;
+      }
+    });
+
+    sl.dispatch('test1');
+    sl.dispatch('test2');
   });
 });
 

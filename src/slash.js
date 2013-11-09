@@ -64,8 +64,10 @@
     var that = this;
 
     this.base = this.constructor.base;
-    this.context = false;
-    this.events = { route: [], match: [], done: [] }
+    this.params = {};
+    this.events = { route: [], match: [], done: [] };
+    this.match = false;
+    this.route = false;
     this.routes = [];
     this.errors = [];
     this.usePopstate = this.constructor.usePopstate && this.constructor.supportsPopstate;
@@ -159,9 +161,11 @@
               that.route.doLeave(params);
             }
 
-            route.doThen(params);
-
+            that.params = params;
+            that.match = uri;
             that.route = route;
+
+            route.doThen(params);
 
             return;
           } catch (e) {
