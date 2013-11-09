@@ -52,6 +52,7 @@ describe('Properties', function() {
           console.log(uri);
           router.match.should.equal('test1');
           router.route.should.equal(test1);
+          router.route.expr.should.equal('test1');
           break;
       }
     });
@@ -65,6 +66,7 @@ describe('Properties', function() {
         case 'test2':
           router.match.should.equal('test2');
           router.route.should.equal(test2);
+          router.route.expr.should.equal('test2');
           done();
           break;
       }

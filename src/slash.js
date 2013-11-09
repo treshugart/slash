@@ -237,13 +237,16 @@
     this.thenCallbacks = [];
     this.otherwiseCallbacks = [];
     this.leaveCallbacks = [];
-    this.regex = /^$/;
+
+    this.expr = expr;
     this.params = {};
-    this.expr(expr);
+    this.regex = /^$/;
+
+    this.parse(expr);
   };
 
   Slash.Route.prototype = {
-    expr: function(expr) {
+    parse: function(expr) {
       if (typeof expr === 'undefined') {
         return this;
       }
