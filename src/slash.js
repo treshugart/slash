@@ -57,7 +57,7 @@
 
 
   var Slash = function(def) {
-    if (this === window) {
+    if (!(this instanceof Slash)) {
       return new Slash(def);
     }
 
