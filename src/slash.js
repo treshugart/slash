@@ -19,7 +19,11 @@
   }
 
   function bind(el, e, fn) {
-    el.addEventListener(e, fn, false);
+    if (el.addEventListener) {
+      el.addEventListener(e, fn, false);
+    } else {
+      el.attachEvent('on' + e, fn);
+    }
   }
 
   function unbind(el, e, fn) {
@@ -55,9 +59,15 @@
     }
   }
 
+  function each(arr) {
+    for (var a = 0; a < arr.length; a++) {
+      fn(arr[a], a);
+    }
+  }
+
 
   var Slash = function(def) {
-    if (!(this instanceof Slash)) {
+    if (this === window) {
       return new Slash(def);
     }
 
@@ -310,21 +320,21 @@
     },
 
     doThen: function(params) {
-      this.thenCallbacks.forEach(function(cb) {
+      each(this.thenCallbacks, function(cb) {
         cb(params);
       });
       return this;
     },
 
     doOtherwise: function(params) {
-      this.otherwiseCallbacks.forEach(function(cb) {
+      each(this.otherwiseCallbacks, function(cb) {
         cb(params);
       });
       return this;
     },
 
     doLeave: function(params) {
-      this.leaveCallbacks.forEach(function(cb) {
+      each(this.leaveCallbacks, function(cb) {
         cb(params);
       });
       return this;
