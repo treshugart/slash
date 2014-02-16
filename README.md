@@ -51,3 +51,7 @@ Or in between expression parts. In the following expression, it would match up t
     sl.when('search/*query/:limit/:page', function(params) {
       search(params.query, params.limit, params.page);
     });
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/treshugart/slash/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
