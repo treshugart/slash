@@ -59,7 +59,7 @@
     }
   }
 
-  function each(arr) {
+  function each(arr, fn) {
     for (var a = 0; a < arr.length; a++) {
       fn(arr[a], a);
     }
