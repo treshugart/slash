@@ -225,6 +225,7 @@
 
         if (this.usePopstate && window.history.pushState) {
           window.history.pushState({}, '', uri);
+          this.routePopstate();
         } else {
           hashbang(uri);
         }
